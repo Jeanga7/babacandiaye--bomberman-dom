@@ -1,4 +1,3 @@
-// import VDOM from "../../core/dom.mjs";
 import { VDOM } from "./index.js";
 const ws = new WebSocket("ws://localhost:8080/");
 export let playerName = "";

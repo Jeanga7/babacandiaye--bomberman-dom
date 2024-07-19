@@ -1,29 +1,17 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bomberman DOM</title>
     <link rel="stylesheet" href="styles.css">
 </head>
+
 <body>
-    <div id="form-container">
-        <form id="nameForm">
-            <label for="playerName">Enter your name:</label>
-            <input type="text" id="playerName" required>
-            <button type="submit">Join Game</button>
-        </form>
-    </div>
 
-    <div id="chat-container" style="display:none;">
-        <div id="messages"></div>
-        <form id="chatForm">
-            <input type="text" id="chatMessage" required placeholder="Type a message">
-            <button type="submit">Send</button>
-        </form>
-    </div>
-
-    <!-- Inclure le script JavaScript externe -->
+    <div id="app"></div>
     <script src="../app.js"></script>
 </body>
+
 </html>

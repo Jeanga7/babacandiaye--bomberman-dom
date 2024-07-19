@@ -1,4 +1,3 @@
-/* Styles de base pour le corps de la page */
 body {
     font-family: Arial, sans-serif;
     margin: 0;
@@ -10,7 +9,6 @@ body {
     background-color: #f0f0f0;
 }
 
-/* Conteneur pour le formulaire de connexion */
 #form-container {
     text-align: center;
     background-color: #fff;
@@ -19,7 +17,6 @@ body {
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
 }
 
-/* Styles pour le formulaire */
 #nameForm {
     display: flex;
     flex-direction: column;
@@ -49,9 +46,8 @@ button:hover {
     background-color: #0056b3;
 }
 
-/* Conteneur pour le chat */
 #chat-container {
-    display: none; /* Caché par défaut */
+    display: none; 
     text-align: center;
     background-color: #fff;
     padding: 20px;
@@ -64,9 +60,8 @@ button:hover {
     position: relative;
 }
 
-/* Styles pour les messages de chat */
 #messages {
-    height: calc(100% - 60px); /* Réduit la hauteur pour faire de la place au formulaire */
+    height: calc(100% - 60px);
     overflow-y: auto;
     padding: 10px;
     border-bottom: 1px solid #ccc;
@@ -74,7 +69,6 @@ button:hover {
     background-color: #f9f9f9;
 }
 
-/* Styles pour le formulaire de chat */
 #chatForm {
     position: absolute;
     bottom: 10px;
@@ -105,7 +99,6 @@ button:hover {
     background-color: #218838;
 }
 
-/* Styles pour les messages de chat */
 #messages p {
     margin: 5px 0;
 }

@@ -57,7 +57,7 @@ BOMBERMAN-DOM:
             ☐ pose et explosion des bombes.
         Gestion des collisions : 
             ☐ détection entre les joueurs, les bombes, les explosions et les obstacles.
-        ☐ I   mplémentation des règles de fin de partie et de gestion des vies des joueurs.
+            ☐ I   mplémentation des règles de fin de partie et de gestion des vies des joueurs.
 
     #Équipe Serveur WebSocket:
     - Responsabilités : Mise en place du serveur WebSocket pour la communication en temps réel entre les joueurs.

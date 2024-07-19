@@ -10,11 +10,11 @@ export class Player {
   }
 
   createPlayer() {
-    return VDOM.createElement("div", { class: "player" }).render();
+    return VDOM.createElement("div", { class: "player" , style: "height: 40px; width: 40px"}).render();
   }
 
   appendToDom(){
-    const container = document.getElementById('app');
+    const container = document.getElementById('map');
     container.appendChild(this.element);
   }
 

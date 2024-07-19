@@ -1,14 +1,26 @@
-// import { createForm } from './components/PlayerForm.js';
-// import { createChat, appendMessage } from './components/Chat.js';
+import { createForm } from './components/PlayerForm.js';
+import { createChat, appendMessage } from './components/Chat.js';
 
-// const ws = new WebSocket('ws://localhost:8080');
+const ws = new WebSocket('ws://localhost:8080');
 
-// ws.onmessage = (event) => {
-//     const data = JSON.parse(event.data);
-//     if (data.type === 'message') {
-//         appendMessage(data.content);
-//     }
+// ws.onopen = () => {
+//     console.log('WebSocket connection established');
 // };
 
-// document.body.appendChild(createForm());
-// document.body.appendChild(createChat());
+ws.onmessage = (event) => {
+    console.log('Received message:', event.data);
+    const data = JSON.parse(event.data);
+    if (data.type === 'message') {
+        appendMessage(`${data.name}: ${data.content}`);
+    } else if (data.type === 'join') {
+        appendMessage(`${data.name} has joined the game.\n`);
+    } else if (data.type === 'playerDisconnected') {
+        appendMessage(`${data.name} has left the game.\n`);
+    }
+};
+
+
+
+const app = document.querySelector('#app');
+app.appendChild(createForm().render());
+app.appendChild(createChat().render());

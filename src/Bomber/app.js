@@ -39,6 +39,8 @@ app.appendChild(createChat().render());
 const player_stats = document.querySelector(".player");
 const mapx = document.querySelector("#map");
 
+var boxplaced = false
+let keyPressed = {};
 document.addEventListener("keydown", (e) => {
   const mapRect = mapx.getBoundingClientRect();
   const playerRect = player_stats.getBoundingClientRect();
@@ -47,26 +49,56 @@ document.addEventListener("keydown", (e) => {
   const Playertop = playerRect.top
   const Playerbottom = playerRect.bottom
 
-  switch (e.key.toLowerCase()) {
-    case "arrowleft":
-      if (Playerleft - 10 > mapRect.left) {
-        player1.moveLeft();
-      }
-      break;
-    case "arrowright":
-      if (PlayerRight + 20 < mapRect.right) {
-        player1.moveRight();
-      }
-      break;
-    case "arrowup":
-      if (Playertop - 10 > mapRect.top) {
-        player1.moveUp();
-      }
-      break;
-    case "arrowdown":
-      if (Playerbottom + 15 < mapRect.bottom) {
-        player1.moveDown();
-      }
-      break;
-  }
+  if (!keyPressed[e.key.toLowerCase()]) {
+    keyPressed[e.key.toLowerCase()] = true;
+
+    switch (e.key.toLowerCase()) {
+      case "arrowleft":
+        if (Playerleft - 10 > mapRect.left) {
+          player1.moveLeft();
+        }
+        break;
+      case "arrowright":
+        if (PlayerRight + 20 < mapRect.right) {
+          player1.moveRight();
+        }
+        break;
+      case "arrowup":
+        if (Playertop - 10 > mapRect.top) {
+          player1.moveUp();
+        }
+        break;
+      case "arrowdown":
+        if (Playerbottom + 15 < mapRect.bottom) {
+          player1.moveDown();
+        }
+        break;
+      case " ":
+        if (!boxplaced){
+          createBlackBox(Playerleft, Playertop)
+        }
+        break;
+    }
+  } 
 });
+
+document.addEventListener('keyup', (e) => {
+  keyPressed[e.key.toLowerCase()] = false;
+});
+
+function createBlackBox(playerLeft, playerTop) {
+  const box = VDOM.createElement("div", {
+      id: "black-box",
+      style: `background-color:black; height:40px; width:40px; position:absolute; left:${playerLeft + 15}px; top:${playerTop + 35}px;`
+  });
+  document.getElementById('map').appendChild(box.render());
+  boxplaced = true
+  setTimeout(() => {
+      var b = document.querySelector("#black-box");
+      if (b) {
+          document.getElementById('map').removeChild(b);
+          boxplaced = false
+      }
+  }, 4000);
+}
+

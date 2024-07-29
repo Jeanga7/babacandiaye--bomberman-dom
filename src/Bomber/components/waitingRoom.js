@@ -36,7 +36,7 @@ export function createCountdown(initialSeconds, playerCount) {
         if (globalPlayerCount >= 2 && !countdownStarted20 && !countdownStarted10) {
             console.log("Starting 20-second countdown");
             countdownStarted20 = true;
-            remainingTime = 20;
+            remainingTime = 2;
             updateCountdown(); 
             return;
         }
@@ -45,7 +45,7 @@ export function createCountdown(initialSeconds, playerCount) {
             console.log("Starting 10-second countdown");
             countdownStarted10 = true;
             countdownStarted20 = false;
-            remainingTime = 10;
+            remainingTime = 1;
             updateCountdown(); 
             return;
         }
@@ -56,7 +56,6 @@ export function createCountdown(initialSeconds, playerCount) {
             } else if (countdownStarted10) {
                 clearInterval(intervalId); 
                 startGame(); 
-                 
                 return;
             }
             updateCountdown();

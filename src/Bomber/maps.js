@@ -1,99 +1,26 @@
 import VDOM from '../core/dom.mjs';
 import EventHandler from '../core/events.js';
 import StateManager from '../core/state.js';
-export {
-    mapWidth
-}
 
-var mapWidth
-const tileMap = {
-    columns: 21,
-    rows: 13,
-    tileSize: 0,
-    tileTypes: {
-        EMPTY: 0,
-        WALL: 1,
-        BRICK: 2,
-        POWERUP: 3
-    },
-    colors: {
-        WALL: "black",
-        BRICK: "white"
-    },
-    gameConfig: {
-        BRICK_COUNT: 60,
-        MAIN_DIV_HEIGHT_PERCENTAGE: 95
-    },
-    map: [
-        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-        [1, 0, 0, 2, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-        [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
-        [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-        [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
-        [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-        [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
-        [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-        [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
-        [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-        [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
-        [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-    ],
+export let mapWidth;
 
-    getTile(col, row) {
-        return this.map[row][col];
-    },
-
-    getColor(tileType) {
-        switch (tileType) {
-            case this.tileTypes.WALL:
-                return this.colors.WALL;
-            case this.tileTypes.BRICK:
-                return this.colors.BRICK;
-            default:
-                return "transparent";
-        }
-    },
-
-    placeRandomBricks(count) {
-        let placed = 0;
-        while (placed < count) {
-            const randomRow = Math.floor(Math.random() * (this.rows - 2)) + 1;
-            const randomCol = Math.floor(Math.random() * (this.columns - 2)) + 1;
-
-            if (
-                (randomRow <= 3 && (randomCol <= 3 || randomCol >= this.columns - 4)) ||
-                (randomRow >= this.rows - 4 && (randomCol <= 3 || randomCol >= this.columns - 4))
-            ) {
-                continue;
-            }
-
-            if (this.map[randomRow][randomCol] === this.tileTypes.EMPTY) {
-                this.map[randomRow][randomCol] = this.tileTypes.BRICK;
-                placed++;
-            }
-        }
-    },
-
-    calculateTileSize(gameBodyWidth, gameBodyHeight) {
-        const gameBodyAspectRatio = gameBodyWidth / gameBodyHeight;
-        const mapAspectRatio = this.columns / this.rows;
-
-        if (mapAspectRatio > gameBodyAspectRatio) {
-            this.tileSize = gameBodyWidth / this.columns;
-            mapWidth = this.tileSize
-        } else {
-            this.tileSize = gameBodyHeight / this.rows;
-            mapWidth = this.tileSize   
-        }
-    }
+const mapClass = {
+    EMPTY_DIV_CLASS: 'empty-div',
+    BORDER_WALL_CLASS: 'border-wall',
+    PILLAR_WALL_CLASS: 'pillar-wall',
+    BRITTLE_BRICK_CLASS: 'brittle-brick',
+    POWERUP_CLASS: 'powerup'
 };
 
 class GameRenderer {
-    constructor(gameBody, eventHandler) {
+    constructor(gameBody, eventHandler, mapData) {
         this.gameBody = gameBody;
         this.eventHandler = eventHandler;
         this.stateManager = new StateManager({ mapDiv: null });
+        this.tilePool = new Map();
+        this.lastSize = { width: 0, height: 0 };
+        this.resizeTimeout = null;
+        this.mapData = mapData;
     }
 
     createDivs() {
@@ -108,24 +35,25 @@ class GameRenderer {
 
     renderMap() {
         const gameBodyWidth = this.gameBody.offsetWidth;
-        const gameBodyHeight = this.gameBody.offsetHeight * (tileMap.gameConfig.MAIN_DIV_HEIGHT_PERCENTAGE / 100);
+        const gameBodyHeight = this.gameBody.offsetHeight * 0.95;
 
-        tileMap.calculateTileSize(gameBodyWidth, gameBodyHeight);
+        if (this.lastSize.width !== gameBodyWidth || this.lastSize.height !== gameBodyHeight) {
+            this.calculateTileSize(gameBodyWidth, gameBodyHeight);
+            this.lastSize = { width: gameBodyWidth, height: gameBodyHeight };
+        }
 
-        const gridWidth = tileMap.tileSize * tileMap.columns;
-        const gridHeight = tileMap.tileSize * tileMap.rows;
+        const gridWidth = this.tileSize * this.mapData.columns;
+        const gridHeight = this.tileSize * this.mapData.rows;
         const offsetX = (gameBodyWidth - gridWidth) / 2;
         const offsetY = (gameBodyHeight - gridHeight) / 2;
 
         this.setupmapDiv(gridWidth, gridHeight, offsetX, offsetY);
 
         const fragment = VDOM.createElement('fragment');
-        for (let row = 0; row < tileMap.rows; row++) {
-            for (let col = 0; col < tileMap.columns; col++) {
-                const tileType = tileMap.getTile(col, row);
-                if (tileType !== tileMap.tileTypes.EMPTY) {
-                    fragment.children.push(this.createTile(tileType, col, row));
-                }
+        for (let row = 0; row < this.mapData.rows; row++) {
+            for (let col = 0; col < this.mapData.columns; col++) {
+                const tileType = this.mapData.map[row][col];
+                fragment.children.push(this.createOrUpdateTile(tileType, col, row));
             }
         }
         this.stateManager.getState().mapDiv.children = [fragment];
@@ -142,39 +70,93 @@ class GameRenderer {
         });
     }
 
-    createTile(tileType, col, row) {
-        const color = tileMap.getColor(tileType);
-        let className = '';
-        
-        if (tileType === tileMap.tileTypes.WALL) {
-            // Briques de bordure 
-            if (row === 0 || row === tileMap.rows - 1 || col === 0 || col === tileMap.columns - 1) {
-                className = 'border-wall';
-            } else {
-                // Piliers intérieurs
-                className= 'pillar-border';
-            }
-        } else if (tileType === tileMap.tileTypes.BRICK) {
-            // Briques cassables
-            className = 'brittle-brick';
+    createOrUpdateTile(tileType, col, row) {
+        const key = `${col}-${row}`;
+        let tile = this.tilePool.get(key);
+
+        if (!tile) {
+            tile = this.createTile(tileType, col, row);
+            this.tilePool.set(key, tile);
+        } else {
+            this.updateTile(tile, tileType, col, row);
         }
-    
+
+        return tile;
+    }
+
+    createTile(tileType, col, row) {
+        const color = this.getColor(tileType);
+        const className = this.getTileClassName(tileType, col, row);
+
         return VDOM.createElement('div', {
             class: className,
             id: `${className}-${row}-${col}`,
             style: {
                 backgroundColor: color,
                 position: 'absolute',
-                left: `${col * tileMap.tileSize}px`,
-                top: `${row * tileMap.tileSize}px`,
-                width: `${tileMap.tileSize}px`,
-                height: `${tileMap.tileSize}px`
+                left: `${col * this.tileSize}px`,
+                top: `${row * this.tileSize}px`,
+                width: `${this.tileSize}px`,
+                height: `${this.tileSize}px`
             }
         });
     }
 
+    updateTile(tile, tileType, col, row) {
+        const color = this.getColor(tileType);
+        const className = this.getTileClassName(tileType, col, row);
+
+        tile.attrs.class = className;
+        tile.attrs.style.backgroundColor = color;
+        tile.attrs.style.left = `${col * this.tileSize}px`;
+        tile.attrs.style.top = `${row * this.tileSize}px`;
+        tile.attrs.style.width = `${this.tileSize}px`;
+        tile.attrs.style.height = `${this.tileSize}px`;
+    }
+
+    getTileClassName(tileType, col, row) {
+        switch (tileType) {
+            case 1: // WALL
+                return (row === 0 || row === this.mapData.rows - 1 || col === 0 || col === this.mapData.columns - 1) 
+                    ? mapClass.BORDER_WALL_CLASS 
+                    : mapClass.PILLAR_WALL_CLASS;
+            case 2: // BRICK
+                return mapClass.BRITTLE_BRICK_CLASS;
+            case 0: // EMPTY
+                return mapClass.EMPTY_DIV_CLASS;
+            case 3: // POWERUP
+                return mapClass.POWERUP_CLASS;
+            default:
+                return '';
+        }
+    }
+
+    getColor(tileType) {
+        switch (tileType) {
+            case 1: return "black";  // WALL
+            case 2: return "white";  // BRICK
+            case 3: return "yellow"; // POWERUP
+            default: return "transparent";
+        }
+    }
+
+    calculateTileSize(gameBodyWidth, gameBodyHeight) {
+        const gameBodyAspectRatio = gameBodyWidth / gameBodyHeight;
+        const mapAspectRatio = this.mapData.columns / this.mapData.rows;
+
+        if (mapAspectRatio > gameBodyAspectRatio) {
+            this.tileSize = gameBodyWidth / this.mapData.columns;
+        } else {
+            this.tileSize = gameBodyHeight / this.mapData.rows;
+        }
+        mapWidth = this.tileSize;
+    }
+
     onResize() {
-        this.renderMap();
+        if (this.resizeTimeout) {
+            cancelAnimationFrame(this.resizeTimeout);
+        }
+        this.resizeTimeout = requestAnimationFrame(() => this.renderMap());
     }
 
     attachEventListeners() {
@@ -182,16 +164,16 @@ class GameRenderer {
     }
 
     initialize() {
-        // tileMap.placeRandomBricks(tileMap.gameConfig.BRICK_COUNT);
         this.createDivs();
         this.renderMap();
         this.attachEventListeners();
     }
 }
 
-export function insertMap() {
+export function insertMap(mapData) {
+    console.log('Inserting map');
     const gameBody = document.getElementById("maps");
     const eventHandler = new EventHandler();
-    const gameRenderer = new GameRenderer(gameBody, eventHandler);
+    const gameRenderer = new GameRenderer(gameBody, eventHandler, mapData);
     gameRenderer.initialize();
 }

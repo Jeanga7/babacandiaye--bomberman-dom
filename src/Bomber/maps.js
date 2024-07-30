@@ -15,7 +15,7 @@ const mapClass = {
 const tileMap = {
     columns: 21,
     rows: 13,
-    tileSize: 0,
+    tileSize: 38, //@ousmasene @edieng vous pouvez réajuster la taille des tuiles ici
     tileTypes: {
         EMPTY: 0,
         WALL: 1,
@@ -23,10 +23,9 @@ const tileMap = {
         POWERUP: 3,
         SPECIALPOWERUP: 4
     },
-    colorMap: {
-        1: "black",  // WALL
-        2: "white",  // BRICK
-        3: "yellow"  // POWERUP 
+    svgMap: {
+        1: "../assets/Wall.svg",  // WALL
+        2: "../assets/Brick.svg", // BRICK
     },
     gameConfig: {
         BRICK_COUNT: 60,
@@ -52,10 +51,6 @@ const tileMap = {
         return this.map[row][col];
     },
 
-    getColor(tileType) {
-        return this.colorMap[tileType] || "transparent";
-    },
-
     placeRandomBricks(count) {
         let placed = 0;
         while (placed < count) {
@@ -74,20 +69,10 @@ const tileMap = {
                 placed++;
             }
         }
-    },
-
-    calculateTileSize(gameBodyWidth, gameBodyHeight) {
-        const gameBodyAspectRatio = gameBodyWidth / gameBodyHeight;
-        const mapAspectRatio = this.columns / this.rows;
-
-        if (mapAspectRatio > gameBodyAspectRatio) {
-            this.tileSize = gameBodyWidth / this.columns;
-        } else {
-            this.tileSize = gameBodyHeight / this.rows;
-        }
-        mapWidth = this.tileSize;
     }
 };
+
+mapWidth = tileMap.tileSize;
 
 class GameRenderer {
     constructor(gameBody, eventHandler) {
@@ -114,7 +99,6 @@ class GameRenderer {
         const gameBodyHeight = this.gameBody.offsetHeight * (tileMap.gameConfig.MAIN_DIV_HEIGHT_PERCENTAGE / 100);
 
         if (this.lastSize.width !== gameBodyWidth || this.lastSize.height !== gameBodyHeight) {
-            tileMap.calculateTileSize(gameBodyWidth, gameBodyHeight);
             this.lastSize = { width: gameBodyWidth, height: gameBodyHeight };
         }
 
@@ -161,14 +145,13 @@ class GameRenderer {
     }
 
     createTile(tileType, col, row) {
-        const color = tileMap.getColor(tileType);
         const className = this.getTileClassName(tileType, col, row);
+        const svgPath = tileMap.svgMap[tileType];
 
-        return VDOM.createElement('div', {
+        const tileDiv = VDOM.createElement('div', {
             class: className,
             id: `${className}-${row}-${col}`,
             style: {
-                backgroundColor: color,
                 position: 'absolute',
                 left: `${col * tileMap.tileSize}px`,
                 top: `${row * tileMap.tileSize}px`,
@@ -176,18 +159,47 @@ class GameRenderer {
                 height: `${tileMap.tileSize}px`
             }
         });
+
+        if (svgPath) {
+            const svgElement = VDOM.createElement('img', {
+                src: svgPath,
+                style: {
+                    width: '100%',
+                    height: '100%'
+                }
+            });
+            tileDiv.children.push(svgElement);
+        }
+
+        return tileDiv;
     }
 
     updateTile(tile, tileType, col, row) {
-        const color = tileMap.getColor(tileType);
         const className = this.getTileClassName(tileType, col, row);
+        const svgPath = tileMap.svgMap[tileType];
 
         tile.attrs.class = className;
-        tile.attrs.style.backgroundColor = color;
         tile.attrs.style.left = `${col * tileMap.tileSize}px`;
         tile.attrs.style.top = `${row * tileMap.tileSize}px`;
         tile.attrs.style.width = `${tileMap.tileSize}px`;
         tile.attrs.style.height = `${tileMap.tileSize}px`;
+
+        if (svgPath) {
+            if (tile.children.length === 0) {
+                const svgElement = VDOM.createElement('img', {
+                    src: svgPath,
+                    style: {
+                        width: '100%',
+                        height: '100%'
+                    }
+                });
+                tile.children.push(svgElement);
+            } else {
+                tile.children[0].attrs.src = svgPath;
+            }
+        } else {
+            tile.children = [];
+        }
     }
 
     getTileClassName(tileType, col, row) {
@@ -219,7 +231,7 @@ class GameRenderer {
     }
 
     initialize() {
-        // tileMap.placeRandomBricks(tileMap.gameConfig.BRICK_COUNT);
+        tileMap.placeRandomBricks(tileMap.gameConfig.BRICK_COUNT);
         this.createDivs();
         this.renderMap();
         this.attachEventListeners();

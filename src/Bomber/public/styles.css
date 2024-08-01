@@ -113,8 +113,8 @@ html {
 }
 
 .player {
-    width: 32px;
-    height: 32px;
+    width: 45px;
+    height: 45px;
     position: absolute;
     background-color: #ff0000;
     border-radius: 50%;

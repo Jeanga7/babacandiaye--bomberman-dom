@@ -1,5 +1,6 @@
 import VDOM from '../../core/dom.mjs';
-import { mapWidth } from '../maps.js';
+import { mapWidth, tileMap } from '../maps.js';
+
 const playerElements = {};
 const playerPositions = {};
 const bombElements = [];
@@ -9,7 +10,7 @@ export function updatePlayerAction(playerName, action) {
     console.log(`${playerName} action: ${action}`);
     let playerElement = playerElements[playerName];
     if (!boxplaced.hasOwnProperty(playerName)) {
-        boxplaced[playerName] = false; // Initialisez si le joueur n'a pas encore d'entrée
+        boxplaced[playerName] = false;
     }
     var map = document.getElementById('mapDiv')
     if (!playerElement) {
@@ -17,65 +18,39 @@ export function updatePlayerAction(playerName, action) {
             class: 'player',
             id: `player-${playerName}`,
             style: {
-                position: 'relative',
-                left: '0%',
-                top: '0%'
+                position: 'absolute',
+                left: '45px',  // Start at the first empty cell (1,1)
+                top: '45px'
             }
         });
         document.getElementById('mapDiv').appendChild(playerElement.render());
         playerElements[playerName] = playerElement;
-        playerPositions[playerName] = { x: 0, y: 0 };
+        playerPositions[playerName] = { row: 1, col: 1 };
     }
 
-    var obstacles = getObstacles()
-    console.log(obstacles);
+    let { row, col } = playerPositions[playerName];
+    let newRow = row;
+    let newCol = col;
 
-    const player_stats = document.querySelector(".player")
-    const mapRect = map.getBoundingClientRect()
-    const playerRect = player_stats.getBoundingClientRect()
-    const Playerleft = playerRect.x
-    const PlayerRight = Playerleft + playerRect.width
-    const Playertop = playerRect.top
-    const Playerbottom = playerRect.bottom
-
-
-    // Switch case for handling player actions
     switch (action) {
         case 'move_left':
-            let newXLeft = playerPositions[playerName].x - 1;
-            if (Playerleft - 10 > mapRect.left + mapWidth && !isCollidingWithObstacle(newXLeft, playerPositions[playerName].y)) {
-                console.log("mapwidth", mapWidth);
-                console.log("maprectleft", mapRect.left);
-                playerPositions[playerName].x = newXLeft;
-            }
+            newCol = Math.max(1, col - 1);
             break;
         case 'move_right':
-            let newXRight = playerPositions[playerName].x + 1;
-            console.log("thisisim", newXRight);
-            if (PlayerRight + 10 < mapRect.right - mapWidth && !isCollidingWithObstacle(newXRight, playerPositions[playerName].y)) {
-                console.log("mapwidth", mapWidth);
-                console.log("maprectright", mapRect.right);
-                playerPositions[playerName].x = newXRight;
-            }
+            newCol = Math.min(tileMap.columns - 2, col + 1);
             break;
         case 'move_up':
-            let newYUp = playerPositions[playerName].y - 1;
-            if (Playertop - 5 > mapRect.top + mapWidth && !isCollidingWithObstacle(playerPositions[playerName].x, newYUp)) {
-                playerPositions[playerName].y = newYUp;
-            }
+            newRow = Math.max(1, row - 1);
             break;
         case 'move_down':
-            let newYDown = playerPositions[playerName].y + 1;
-            if (Playerbottom + 7 < mapRect.bottom - mapWidth && !isCollidingWithObstacle(playerPositions[playerName].x, newYDown)) {
-                playerPositions[playerName].y = newYDown;
-            }
+            newRow = Math.min(tileMap.rows - 2, row + 1);
             break;
         case 'place_bomb':
-            if (!boxplaced[playerName]) { // Vérifier si le joueur n'a pas encore placé une bombe
+            if (!boxplaced[playerName]) {
                 boxplaced[playerName] = true;
-                placeBomb(playerPositions[playerName]);
+                placeBomb(row, col);
                 setTimeout(() => {
-                    boxplaced[playerName] = false; // Réinitialiser après 4 secondes
+                    boxplaced[playerName] = false;
                 }, 4000);
             } else {
                 console.log(`${playerName} a déjà placé une bombe.`);
@@ -85,30 +60,40 @@ export function updatePlayerAction(playerName, action) {
             break;
     }
 
-    const updatedPlayerElement = VDOM.createElement('div', {
-        class: 'player',
-        id: `player-${playerName}`,
-        style: {
-            position: 'absolute',
-            left: `${playerPositions[playerName].x}%`,
-            top: `${playerPositions[playerName].y}%`
-        }
-    });
+    if (canMoveTo(newRow, newCol)) {
+        playerPositions[playerName] = { row: newRow, col: newCol };
 
-    const oldElement = document.getElementById(`player-${playerName}`);
-    oldElement.replaceWith(updatedPlayerElement.render());
-    playerElements[playerName] = updatedPlayerElement;
+        const updatedPlayerElement = VDOM.createElement('div', {
+            class: 'player',
+            id: `player-${playerName}`,
+            style: {
+                position: 'absolute',
+                left: `${newCol * tileMap.tileSize}px`,
+                top: `${newRow * tileMap.tileSize}px`
+            }
+        });
+
+        const oldElement = document.getElementById(`player-${playerName}`);
+        oldElement.replaceWith(updatedPlayerElement.render());
+        playerElements[playerName] = updatedPlayerElement;
+    }
 }
 
-function placeBomb(position) {
+function canMoveTo(row, col) {
+    return tileMap.getTile(col, row) === tileMap.tileTypes.EMPTY;
+}
+
+function placeBomb(row, col) {
     const bombElement = VDOM.createElement('div', {
         class: 'bomb',
         style: {
-            left: `${position.x + 0.7}%`,
-            top: `${position.y + 0.7}%`
+            position: 'absolute',
+            left: `${col * tileMap.tileSize}px`,
+            top: `${row * tileMap.tileSize}px`,
+            width: `${tileMap.tileSize}px`,
+            height: `${tileMap.tileSize}px`
         }
-    }
-    );
+    });
     document.getElementById('mapDiv').appendChild(bombElement.render());
     bombElements.push(bombElement)
     setTimeout(() => {
@@ -123,16 +108,16 @@ export function removePlayer(playerName) {
     const playerVDOM = playerElements[playerName];
     if (playerVDOM) {
         const playerElement = playerVDOM.render();
-
-        // UnmountComponent('#game-content', playerElement);
-        // display none le player 
-
+        // Vous pouvez ajouter ici la logique pour retirer visuellement le joueur
+        playerElement.style.display = 'none';
         delete playerElements[playerName];
         delete playerPositions[playerName];
     }
 }
 
-// Function to get obstacle positions and sizes from 'tile' div elements
+// Ces fonctions ne sont plus nécessaires avec la nouvelle logique de déplacement
+// mais je les laisse commentées au cas où vous en auriez besoin ailleurs
+/*
 function getObstacles() {
     const tiles = document.querySelectorAll('.pillar-border');
     const obstacles = [];
@@ -148,24 +133,19 @@ function getObstacles() {
     return obstacles;
 }
 
-// Function to check collision between the player and obstacles
 function isCollidingWithObstacle(playerX, playerY) {
-    const obstacles = getObstacles(); // Get current obstacle data
+    const obstacles = getObstacles();
     for (let i = 0; i < obstacles.length; i++) {
         const obstacle = obstacles[i];
-        console.log(`Checking collision with obstacle ${i}: `, obstacle);
-        console.log("playerX", playerX);
-        console.log("playerY", playerY);
         if (
             playerX < obstacle.x + obstacle.width &&
             playerX + 32 > obstacle.x &&
             playerY < obstacle.y + obstacle.height &&
             playerY + 32 > obstacle.y
         ) {
-            console.log('Collision detected');
-            return true; // Collision detected
+            return true;
         }
     }
-    console.log('No collision detected');
-    return false; // No collision
+    return false;
 }
+*/

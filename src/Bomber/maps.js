@@ -322,4 +322,4 @@ function insertMap() {
     gameRenderer.initialize();
 }
 
-export { mapWidth, insertMap, destroyBrick, getBricksWithPowerup };
+export { mapWidth, insertMap, destroyBrick, getBricksWithPowerup, tileMap };

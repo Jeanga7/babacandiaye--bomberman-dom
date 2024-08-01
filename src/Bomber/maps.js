@@ -15,7 +15,7 @@ const mapClass = {
 const tileMap = {
     columns: 21,
     rows: 13,
-    tileSize: 38,
+    tileSize: 45,
     tileTypes: {
         EMPTY: 0,
         WALL: 1,
@@ -286,18 +286,27 @@ class GameRenderer {
 
 function destroyBrick(row, col) {
     const tileType = tileMap.getTile(col, row);
+    const tileDiv = document.getElementById(`${mapClass.BRITTLE_BRICK_CLASS}-${row}-${col}`);
+
     if (tileType === tileMap.tileTypes.BRICK_WITH_POWERUP) {
         tileMap.map[row][col] = tileMap.tileTypes.POWERUP;
-        // Mettre à jour le rendu pour afficher le powerup
-        const tileDiv = document.getElementById(`${mapClass.BRITTLE_BRICK_CLASS}-${row}-${col}`);
-        tileDiv.querySelector('img').style.display = 'none';
-        tileDiv.querySelector('.powerup').style.display = 'block';
+        
+        // Supprimer l'élément de brique
+        tileDiv.querySelector('img').remove();
+        
+        // Afficher le powerup
+        const powerupDiv = tileDiv.querySelector(`.${mapClass.POWERUP_CLASS}`);
+        powerupDiv.style.display = 'block';
+        
+        // Changer la classe du tileDiv
+        tileDiv.className = mapClass.POWERUP_CLASS;
+        tileDiv.id = `${mapClass.POWERUP_CLASS}-${row}-${col}`;
+
         // Retirer cette brique de la liste des briques avec powerup
         tileMap.bricksWithPowerup = tileMap.bricksWithPowerup.filter(brick => brick.row !== row || brick.col !== col);
     } else if (tileType === tileMap.tileTypes.BRICK) {
         tileMap.map[row][col] = tileMap.tileTypes.EMPTY;
-        // Mettre à jour le rendu pour supprimer la brique
-        const tileDiv = document.getElementById(`${mapClass.BRITTLE_BRICK_CLASS}-${row}-${col}`);
+        // Supprimer complètement l'élément de brique
         tileDiv.remove();
     }
 }

@@ -23,7 +23,7 @@ ws.onmessage = (event) => {
     if (data.type === 'message') {
         displayMessage(`${data.name}: ${data.content}`, data.name === playerName);
     } else if (data.type === 'action') {
-        updatePlayerAction(data.name, data.action );
+        updatePlayerAction(data.name, data.action);
     } else if (data.type === 'playerJoined') {
         showGameNotStarting(data.seconds, data.playerCount);
         displayMessage(`${data.name} has joined the game.\n`, false);

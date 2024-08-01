@@ -1,16 +1,19 @@
 import VDOM from '../../core/dom.mjs';
-import { mapWidth, tileMap } from '../maps.js';
+import { destroyBrick, mapWidth, tileMap } from '../maps.js';
 
 const playerElements = {};
-const playerPositions = {};
+export const playerPositions = {};
 const bombElements = [];
 var boxplaced = {}
-
+export const playerLives = {};
 export function updatePlayerAction(playerName, action) {
     console.log(`${playerName} action: ${action}`);
     let playerElement = playerElements[playerName];
     if (!boxplaced.hasOwnProperty(playerName)) {
         boxplaced[playerName] = false;
+    }
+    if (!playerLives.hasOwnProperty(playerName)) {
+        playerLives[playerName] = 3; // Assuming players start with 3 lives
     }
     var map = document.getElementById('mapDiv')
     if (!playerElement) {
@@ -51,7 +54,7 @@ export function updatePlayerAction(playerName, action) {
                 placeBomb(row, col);
                 setTimeout(() => {
                     boxplaced[playerName] = false;
-                }, 4000);
+                }, 3000);
             } else {
                 console.log(`${playerName} a déjà placé une bombe.`);
             }
@@ -101,7 +104,8 @@ function placeBomb(row, col) {
         if (b) {
             document.getElementById('mapDiv').removeChild(b);
         }
-    }, 4000)
+        destroyBrick(row, col)
+    }, 3000)
 }
 
 export function removePlayer(playerName) {
@@ -114,6 +118,7 @@ export function removePlayer(playerName) {
         delete playerPositions[playerName];
     }
 }
+
 
 // Ces fonctions ne sont plus nécessaires avec la nouvelle logique de déplacement
 // mais je les laisse commentées au cas où vous en auriez besoin ailleurs

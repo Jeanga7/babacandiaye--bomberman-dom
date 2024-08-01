@@ -125,7 +125,7 @@ class GameRenderer {
 
         this.setupmapDiv(gridWidth, gridHeight, offsetX, offsetY);
 
-        const fragment = VDOM.createElement('fragment');
+        const fragment = VDOM.createElement('fragment', {id:"fragment"});
         for (let row = 0; row < tileMap.rows; row++) {
             for (let col = 0; col < tileMap.columns; col++) {
                 const tileType = tileMap.getTile(col, row);

@@ -186,7 +186,7 @@ class GameRenderer {
 
         if (tileType === tileMap.tileTypes.BRICK_WITH_POWERUP) {
             const powerupDiv = VDOM.createElement('div', {
-                class: 'powerup-red',
+                class: mapClass.POWERUP_CLASS, 
                 style: {
                     position: 'absolute',
                     left: '0',
@@ -232,7 +232,7 @@ class GameRenderer {
 
         if (tileType === tileMap.tileTypes.BRICK_WITH_POWERUP && tile.children.length === 1) {
             const powerupDiv = VDOM.createElement('div', {
-                class: 'powerup-red',
+                class: mapClass.POWERUP_CLASS, 
                 style: {
                     position: 'absolute',
                     left: '0',
@@ -291,7 +291,7 @@ function destroyBrick(row, col) {
         // Mettre à jour le rendu pour afficher le powerup
         const tileDiv = document.getElementById(`${mapClass.BRITTLE_BRICK_CLASS}-${row}-${col}`);
         tileDiv.querySelector('img').style.display = 'none';
-        tileDiv.querySelector('.powerup-red').style.display = 'block';
+        tileDiv.querySelector('.powerup').style.display = 'block';
         // Retirer cette brique de la liste des briques avec powerup
         tileMap.bricksWithPowerup = tileMap.bricksWithPowerup.filter(brick => brick.row !== row || brick.col !== col);
     } else if (tileType === tileMap.tileTypes.BRICK) {

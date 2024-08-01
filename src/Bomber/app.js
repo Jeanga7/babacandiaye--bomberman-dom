@@ -1,11 +1,11 @@
+import { insertMap, destroyBrick, getBricksWithPowerup } from './maps.js';
 import { createChat, displayMessage } from './components/Chat.js';
-import { updatePlayerAction } from './components/Player.js';
-import { HomeComponent } from './components/Home.js';
-import { playerName } from './components/PlayerForm.js';
-import { removePlayer } from './components/Player.js';
-import { createGame } from './components/GameBoard.js';
 import { createCountdown } from './components/waitingRoom.js';
-import { insertMap } from './maps.js';
+import { updatePlayerAction } from './components/Player.js';
+import { playerName } from './components/PlayerForm.js';
+import { createGame } from './components/GameBoard.js';
+import { removePlayer } from './components/Player.js';
+import { HomeComponent } from './components/Home.js';
 
 export let seconds
 export let playerCount
@@ -35,9 +35,29 @@ ws.onmessage = (event) => {
     }
 };
 
+// export function startGame() {
+//     MountComponent('#app', createGame, createChat);
+//     insertMap()
+// }
+
 export function startGame() {
     MountComponent('#app', createGame, createChat);
-    insertMap()
+    insertMap();
+    
+    // Ajout de l'event listener pour le test
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'v') {
+            const bricksWithPowerup = getBricksWithPowerup();
+            if (bricksWithPowerup.length > 0) {
+                const randomIndex = Math.floor(Math.random() * bricksWithPowerup.length);
+                const { row, col } = bricksWithPowerup[randomIndex];
+                destroyBrick(row, col);
+                console.log(`Brick with powerup destroyed at row ${row}, col ${col}`);
+            } else {
+                console.log('No more bricks with powerup to destroy');
+            }
+        }
+    });
 }
 
 export function showGameNotStarting(seconds, playerCount) {
@@ -56,7 +76,6 @@ export function MountComponent(target, ...components) {
 
     components.forEach(component => {
         let element;
-
         if (typeof component === 'function') {
             element = component().render();
         } else if (typeof component === 'string') {

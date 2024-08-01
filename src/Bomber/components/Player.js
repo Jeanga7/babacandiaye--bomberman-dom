@@ -3,8 +3,9 @@ import { mapWidth } from '../maps.js';
 const playerElements = {};
 const playerPositions = {};
 const bombElements = [];
-var boxplaced = {} 
-export function updatePlayerAction(playerName, action ) {
+var boxplaced = {}
+
+export function updatePlayerAction(playerName, action) {
     console.log(`${playerName} action: ${action}`);
     let playerElement = playerElements[playerName];
     if (!boxplaced.hasOwnProperty(playerName)) {
@@ -38,51 +39,51 @@ export function updatePlayerAction(playerName, action ) {
     const Playerbottom = playerRect.bottom
 
 
-   // Switch case for handling player actions
-switch (action) {
-    case 'move_left':
-        let newXLeft = playerPositions[playerName].x - 1;
-        if (Playerleft - 10 > mapRect.left + mapWidth && !isCollidingWithObstacle(newXLeft, playerPositions[playerName].y)) {
-            console.log("mapwidth", mapWidth);
-            console.log("maprectleft", mapRect.left);
-            playerPositions[playerName].x = newXLeft;
-        }
-        break;
-    case 'move_right':
-        let newXRight = playerPositions[playerName].x + 1;
-        console.log("thisisim",newXRight);
-        if (PlayerRight + 10 < mapRect.right - mapWidth && !isCollidingWithObstacle(newXRight, playerPositions[playerName].y)) {
-            console.log("mapwidth", mapWidth);
-            console.log("maprectright", mapRect.right);
-            playerPositions[playerName].x = newXRight;
-        }
-        break;
-    case 'move_up':
-        let newYUp = playerPositions[playerName].y - 1;
-        if (Playertop - 5 > mapRect.top + mapWidth && !isCollidingWithObstacle(playerPositions[playerName].x, newYUp)) {
-            playerPositions[playerName].y = newYUp;
-        }
-        break;
-    case 'move_down':
-        let newYDown = playerPositions[playerName].y + 1;
-        if (Playerbottom + 7 < mapRect.bottom - mapWidth && !isCollidingWithObstacle(playerPositions[playerName].x, newYDown)) {
-            playerPositions[playerName].y = newYDown;
-        }
-        break;
-    case 'place_bomb':
-        if (!boxplaced[playerName]) { // Vérifier si le joueur n'a pas encore placé une bombe
-            boxplaced[playerName] = true;
-            placeBomb(playerPositions[playerName]);
-            setTimeout(() => {
-                boxplaced[playerName] = false; // Réinitialiser après 4 secondes
-            }, 4000);
-        } else {
-            console.log(`${playerName} a déjà placé une bombe.`);
-        } 
-        break;
-    default:
-        break;
-}
+    // Switch case for handling player actions
+    switch (action) {
+        case 'move_left':
+            let newXLeft = playerPositions[playerName].x - 1;
+            if (Playerleft - 10 > mapRect.left + mapWidth && !isCollidingWithObstacle(newXLeft, playerPositions[playerName].y)) {
+                console.log("mapwidth", mapWidth);
+                console.log("maprectleft", mapRect.left);
+                playerPositions[playerName].x = newXLeft;
+            }
+            break;
+        case 'move_right':
+            let newXRight = playerPositions[playerName].x + 1;
+            console.log("thisisim", newXRight);
+            if (PlayerRight + 10 < mapRect.right - mapWidth && !isCollidingWithObstacle(newXRight, playerPositions[playerName].y)) {
+                console.log("mapwidth", mapWidth);
+                console.log("maprectright", mapRect.right);
+                playerPositions[playerName].x = newXRight;
+            }
+            break;
+        case 'move_up':
+            let newYUp = playerPositions[playerName].y - 1;
+            if (Playertop - 5 > mapRect.top + mapWidth && !isCollidingWithObstacle(playerPositions[playerName].x, newYUp)) {
+                playerPositions[playerName].y = newYUp;
+            }
+            break;
+        case 'move_down':
+            let newYDown = playerPositions[playerName].y + 1;
+            if (Playerbottom + 7 < mapRect.bottom - mapWidth && !isCollidingWithObstacle(playerPositions[playerName].x, newYDown)) {
+                playerPositions[playerName].y = newYDown;
+            }
+            break;
+        case 'place_bomb':
+            if (!boxplaced[playerName]) { // Vérifier si le joueur n'a pas encore placé une bombe
+                boxplaced[playerName] = true;
+                placeBomb(playerPositions[playerName]);
+                setTimeout(() => {
+                    boxplaced[playerName] = false; // Réinitialiser après 4 secondes
+                }, 4000);
+            } else {
+                console.log(`${playerName} a déjà placé une bombe.`);
+            }
+            break;
+        default:
+            break;
+    }
 
     const updatedPlayerElement = VDOM.createElement('div', {
         class: 'player',
@@ -99,7 +100,7 @@ switch (action) {
     playerElements[playerName] = updatedPlayerElement;
 }
 
-function placeBomb(position ) {
+function placeBomb(position) {
     const bombElement = VDOM.createElement('div', {
         class: 'bomb',
         style: {
@@ -125,7 +126,7 @@ export function removePlayer(playerName) {
 
         // UnmountComponent('#game-content', playerElement);
         // display none le player 
-        
+
         delete playerElements[playerName];
         delete playerPositions[playerName];
     }

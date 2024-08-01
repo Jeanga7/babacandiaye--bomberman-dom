@@ -15,17 +15,19 @@ const mapClass = {
 const tileMap = {
     columns: 21,
     rows: 13,
-    tileSize: 38, //@ousmasene @edieng vous pouvez réajuster la taille des tuiles ici
+    tileSize: 38,
     tileTypes: {
         EMPTY: 0,
         WALL: 1,
         BRICK: 2,
         POWERUP: 3,
-        SPECIALPOWERUP: 4
+        SPECIALPOWERUP: 4,
+        BRICK_WITH_POWERUP: 5
     },
     svgMap: {
-        1: "../assets/Wall.svg",  // WALL
-        2: "../assets/Brick.svg", // BRICK
+        1: "../assets/Wall.svg",
+        2: "../assets/Brick.svg",
+        3: "../assets/RedPowerup.svg",
     },
     gameConfig: {
         BRICK_COUNT: 60,
@@ -33,7 +35,7 @@ const tileMap = {
     },
     map: [
         [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-        [1, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
         [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
         [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
         [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
@@ -46,13 +48,19 @@ const tileMap = {
         [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
         [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
     ],
+    bricksWithPowerup: [],
 
     getTile(col, row) {
         return this.map[row][col];
     },
 
+    hasPowerup(row, col) {
+        return this.map[row][col] === this.tileTypes.BRICK_WITH_POWERUP;
+    },
+
     placeRandomBricks(count) {
         let placed = 0;
+        this.bricksWithPowerup = []; // Réinitialiser la liste
         while (placed < count) {
             const randomRow = Math.floor(Math.random() * (this.rows - 2)) + 1;
             const randomCol = Math.floor(Math.random() * (this.columns - 2)) + 1;
@@ -65,7 +73,12 @@ const tileMap = {
             }
 
             if (this.map[randomRow][randomCol] === this.tileTypes.EMPTY) {
-                this.map[randomRow][randomCol] = this.tileTypes.BRICK;
+                if (Math.random() < 0.1) {
+                    this.map[randomRow][randomCol] = this.tileTypes.BRICK_WITH_POWERUP;
+                    this.bricksWithPowerup.push({ row: randomRow, col: randomCol });
+                } else {
+                    this.map[randomRow][randomCol] = this.tileTypes.BRICK;
+                }
                 placed++;
             }
         }
@@ -146,7 +159,7 @@ class GameRenderer {
 
     createTile(tileType, col, row) {
         const className = this.getTileClassName(tileType, col, row);
-        const svgPath = tileMap.svgMap[tileType];
+        const svgPath = tileMap.svgMap[tileType === tileMap.tileTypes.BRICK_WITH_POWERUP ? tileMap.tileTypes.BRICK : tileType];
 
         const tileDiv = VDOM.createElement('div', {
             class: className,
@@ -171,12 +184,28 @@ class GameRenderer {
             tileDiv.children.push(svgElement);
         }
 
+        if (tileType === tileMap.tileTypes.BRICK_WITH_POWERUP) {
+            const powerupDiv = VDOM.createElement('div', {
+                class: 'powerup-red',
+                style: {
+                    position: 'absolute',
+                    left: '0',
+                    top: '0',
+                    width: '100%',
+                    height: '100%',
+                    backgroundColor: 'red',
+                    display: 'none'
+                }
+            });
+            tileDiv.children.push(powerupDiv);
+        }
+
         return tileDiv;
     }
 
     updateTile(tile, tileType, col, row) {
         const className = this.getTileClassName(tileType, col, row);
-        const svgPath = tileMap.svgMap[tileType];
+        const svgPath = tileMap.svgMap[tileType === tileMap.tileTypes.BRICK_WITH_POWERUP ? tileMap.tileTypes.BRICK : tileType];
 
         tile.attrs.class = className;
         tile.attrs.style.left = `${col * tileMap.tileSize}px`;
@@ -200,6 +229,22 @@ class GameRenderer {
         } else {
             tile.children = [];
         }
+
+        if (tileType === tileMap.tileTypes.BRICK_WITH_POWERUP && tile.children.length === 1) {
+            const powerupDiv = VDOM.createElement('div', {
+                class: 'powerup-red',
+                style: {
+                    position: 'absolute',
+                    left: '0',
+                    top: '0',
+                    width: '100%',
+                    height: '100%',
+                    backgroundColor: 'red',
+                    display: 'none'
+                }
+            });
+            tile.children.push(powerupDiv);
+        }
     }
 
     getTileClassName(tileType, col, row) {
@@ -209,6 +254,7 @@ class GameRenderer {
                     ? mapClass.BORDER_WALL_CLASS 
                     : mapClass.PILLAR_WALL_CLASS;
             case tileMap.tileTypes.BRICK:
+            case tileMap.tileTypes.BRICK_WITH_POWERUP:
                 return mapClass.BRITTLE_BRICK_CLASS;
             case tileMap.tileTypes.EMPTY:
                 return mapClass.EMPTY_DIV_CLASS;
@@ -234,8 +280,30 @@ class GameRenderer {
         tileMap.placeRandomBricks(tileMap.gameConfig.BRICK_COUNT);
         this.createDivs();
         this.renderMap();
-        this.attachEventListeners();
+        // this.attachEventListeners();
     }
+}
+
+function destroyBrick(row, col) {
+    const tileType = tileMap.getTile(col, row);
+    if (tileType === tileMap.tileTypes.BRICK_WITH_POWERUP) {
+        tileMap.map[row][col] = tileMap.tileTypes.POWERUP;
+        // Mettre à jour le rendu pour afficher le powerup
+        const tileDiv = document.getElementById(`${mapClass.BRITTLE_BRICK_CLASS}-${row}-${col}`);
+        tileDiv.querySelector('img').style.display = 'none';
+        tileDiv.querySelector('.powerup-red').style.display = 'block';
+        // Retirer cette brique de la liste des briques avec powerup
+        tileMap.bricksWithPowerup = tileMap.bricksWithPowerup.filter(brick => brick.row !== row || brick.col !== col);
+    } else if (tileType === tileMap.tileTypes.BRICK) {
+        tileMap.map[row][col] = tileMap.tileTypes.EMPTY;
+        // Mettre à jour le rendu pour supprimer la brique
+        const tileDiv = document.getElementById(`${mapClass.BRITTLE_BRICK_CLASS}-${row}-${col}`);
+        tileDiv.remove();
+    }
+}
+
+function getBricksWithPowerup() {
+    return tileMap.bricksWithPowerup;
 }
 
 function insertMap() {
@@ -245,4 +313,4 @@ function insertMap() {
     gameRenderer.initialize();
 }
 
-export { mapWidth, insertMap };
+export { mapWidth, insertMap, destroyBrick, getBricksWithPowerup };

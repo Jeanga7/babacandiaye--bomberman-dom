@@ -114,14 +114,18 @@ class GameRenderer {
   }
 
   renderMap() {
+    console.log("les players", this.allPlayers);
     const gameBodyWidth = this.gameBody.offsetWidth;
-    const gameBodyHeight = this.gameBody.offsetHeight * (tileMap.gameConfig.MAIN_DIV_HEIGHT_PERCENTAGE / 100);
+    const gameBodyHeight =
+      this.gameBody.offsetHeight *
+      (tileMap.gameConfig.MAIN_DIV_HEIGHT_PERCENTAGE / 100);
 
-    // Calculate the tileSize based on the available space
-    tileMap.tileSize = Math.min(
-      Math.floor(gameBodyWidth / tileMap.columns),
-      Math.floor(gameBodyHeight / tileMap.rows)
-    );
+    if (
+      this.lastSize.width !== gameBodyWidth ||
+      this.lastSize.height !== gameBodyHeight
+    ) {
+      this.lastSize = { width: gameBodyWidth, height: gameBodyHeight };
+    }
 
     const gridWidth = tileMap.tileSize * tileMap.columns;
     const gridHeight = tileMap.tileSize * tileMap.rows;
@@ -138,19 +142,24 @@ class GameRenderer {
       }
     }
     this.stateManager.getState().mapDiv.children = [fragment];
-    this.gameBody.querySelector("#mapDiv").replaceWith(this.stateManager.getState().mapDiv.render());
+    this.gameBody
+      .querySelector("#mapDiv")
+      .replaceWith(this.stateManager.getState().mapDiv.render());
 
-    // Update player positions
     const maxPlayers = Math.min(this.allPlayers.length, 4);
-    const positions = this.getPlayerPositions(gridWidth, gridHeight, maxPlayers);
+    const positions = this.getPlayerPositions(
+      gridWidth,
+      gridHeight,
+      maxPlayers
+    );
+
     for (let i = 0; i < maxPlayers; i++) {
       const player = this.allPlayers[i];
       const playerPosition = positions[i];
-      allpos[player] = playerPosition;
+      allpos[player] = playerPosition
       this.createOrUpdatePlayer(player, playerPosition.x, playerPosition.y);
     }
   }
-
 
   getPlayerPositions(gridWidth, gridHeight, maxPlayers) {
     const positions = [];
@@ -171,44 +180,18 @@ class GameRenderer {
   }
 
   // Function to create or update a player on the map
-  // createOrUpdatePlayer(player, x, y) {
-  //   let playerElement = VDOM.createElement("div", {
-  //     class: "player",
-  //     id: `player-${player}`,
-  //     style: {
-  //       position: "absolute",
-  //       left: `${y * 45}px`,//"45px"
-  //       top: `${x * 45}px`,//"45px"
-  //     },
-  //   });
-  //   document.getElementById("mapDiv").appendChild(playerElement.render());
-  // }
   createOrUpdatePlayer(player, x, y) {
-    let playerElement = document.getElementById(`player-${player}`);
-
-    // Si l'élément joueur n'existe pas encore, on le crée
-    if (!playerElement) {
-      playerElement = VDOM.createElement("div", {
-        class: "player",
-        id: `player-${player}`,
-        style: {
-          position: "absolute",
-          width: `${tileMap.tileSize}px`,
-          height: `${tileMap.tileSize}px`,
-          backgroundColor: "#ff0000",  // Couleur temporaire pour voir les joueurs
-          borderRadius: "50%",
-        },
-      }).render();
-      document.getElementById("mapDiv").appendChild(playerElement);
-    }
-
-    // Met à jour la position du joueur
-    playerElement.style.left = `${y * tileMap.tileSize}px`;
-    playerElement.style.top = `${x * tileMap.tileSize}px`;
-    playerElement.style.width = `${tileMap.tileSize}px`;
-    playerElement.style.height = `${tileMap.tileSize}px`;
+    let playerElement = VDOM.createElement("div", {
+      class: "player",
+      id: `player-${player}`,
+      style: {
+        position: "absolute",
+        left: `${y * 45}px`,//"45px"
+        top: `${x * 45}px`,//"45px"
+      },
+    });
+    document.getElementById("mapDiv").appendChild(playerElement.render());
   }
-
 
   setupmapDiv(width, height, left, top) {
     Object.assign(this.stateManager.getState().mapDiv.attrs.style, {

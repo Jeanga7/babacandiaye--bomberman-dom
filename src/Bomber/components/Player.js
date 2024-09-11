@@ -116,7 +116,7 @@ export function updatePlayerAction(playerName, action, ix, iy) {
   if (canMoveTo(newRow, newCol)) {
     playerPositions[playerName] = { row: newRow, col: newCol };
 
-    // Update player element's position based on the new tileSize
+    // Update player element's position
     const playerElement = document.getElementById(`player-${playerName}`);
     if (playerElement) {
       playerElement.style.left = `${newCol * tileMap.tileSize}px`;

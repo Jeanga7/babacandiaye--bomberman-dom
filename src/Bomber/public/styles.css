@@ -90,23 +90,14 @@ body {
 }
 
 .bomb {
-    /* width: 16px; */
-    /* height: 16px; */
+    width: 16px;
+    height: 16px;
     position: absolute;
     background-color: #000000;
     border-radius: 50%;
-    /* right: 8px; */
-    /* bottom: 8px; */
+    right: 8px;
+    bottom: 8px;
 }
-
-.player {
-    position: absolute;
-    background-color: #ff0000; /* Temporaire pour s'assurer que le joueur est visible */
-    border-radius: 50%; /* Pour donner un effet circulaire aux joueurs */
-    width: 100%; /* Taille adaptée à la taille du parent */
-    height: 100%; /* Taille adaptée à la taille du parent */
-}
-
 
 
 #playerContainer {
@@ -133,13 +124,13 @@ body {
     gap: 60px 30px;
 }
 
-/* .player { */
-    /* width: 45px;
+.player {
+    width: 45px;
     height: 45px;
-    position: absolute; */
-    /* background-color: #ff0000; */
-    /* border-radius: 50%; */
-/* } */
+    position: absolute;
+    background-color: #ff0000;
+    border-radius: 50%;
+}
 
 .playerContainer {
     width: 120px;
@@ -332,8 +323,6 @@ body {
 #mapDiv {
     position: absolute;
     overflow: hidden;
-    width: 100%; /* Ensure it uses the full width dynamically */
-    height: 100%;
 }
 
 .setBrick {

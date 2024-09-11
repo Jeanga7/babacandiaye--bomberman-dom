@@ -19,7 +19,11 @@ export function setupWebSocket() {
 
   ws.onerror = () => console.log('WebSocket error');
 
-  ws.onmessage = (event) => handleWebSocketMessage(JSON.parse(event.data));
+  ws.onmessage = (event) => {
+    console.log("Received message:", event.data);
+    const data = JSON.parse(event.data);
+    handleWebSocketMessage(data);
+  };
 }
 
 function handleWebSocketMessage(data) {
@@ -27,15 +31,7 @@ function handleWebSocketMessage(data) {
 
   switch (data.type) {
     case 'pseudoUsed':
-      let errorName = VDOM.createElement("div", { id: "errorName", style: "color:red;margin-top:10px;font-size:x-large;" }, "this pseudo is already used, please change it");
-
-      if (!document.getElementById("errorName")) {
-        VDOM.appendChildToElementById("app", errorName);
-        setTimeout(() => (
-          document.getElementById("errorName").remove()
-        ), 2000);
-      }
-      document.addEventListener("keydown", keydownHandler);
+      HandlePseudo();
       break
     case 'message':
       displayMessage(data.name, data.content);
@@ -65,7 +61,23 @@ function handleWebSocketMessage(data) {
     case 'gameEnded':
       alert(data.content);
       ws.close();
-      window.location.reload(); 
+      window.location.reload();
+      break;
+    case 'updateLives':
+      if (data.name === getPlayerName()) {
+        playerLives = data.lives;
+        updateLivesDisplay(playerLives);
+        if (playerLives === 0) {
+          alert("Vous avez perdu toutes vos vies !");
+        }
+      } else {
+        updateOtherPlayerLives(data.name, data.lives);
+      }
+      break;
+    case 'playerEliminated':
+      if (message.name === getPlayerName()) {
+        alert("Vous êtes éliminé !");
+      }
       break;
     case 'error':
       console.warn(data.content);
@@ -74,6 +86,18 @@ function handleWebSocketMessage(data) {
     default:
       console.error('Unknown WebSocket message type:', data.type);
   }
+}
+
+function HandlePseudo() {
+  let errorName = VDOM.createElement("div", { id: "errorName", style: "color:red;margin-top:10px;font-size:x-large;" }, "this pseudo is already used, please change it");
+
+  if (!document.getElementById("errorName")) {
+    VDOM.appendChildToElementById("app", errorName);
+    setTimeout(() => (
+      document.getElementById("errorName").remove()
+    ), 2000);
+  }
+  document.addEventListener("keydown", keydownHandler);
 }
 
 function handlePlayerAction(data) {

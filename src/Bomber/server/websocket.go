@@ -3,190 +3,82 @@ package server
 import (
 	"fmt"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/gorilla/websocket"
 )
 
+type Player struct {
+	ID         string
+	Name       string
+	Connection *websocket.Conn
+	Lives      int
+}
+
+type Room struct {
+	ID               string
+	Players          map[string]*Player
+	PlayerCount      int
+	MaxPlayers       int
+	WaitingTime      time.Duration
+	CountdownTime    time.Duration
+	CountdownStarted bool
+	GameStarted      bool
+	GameOver         bool
+	mu               sync.Mutex
+}
+
 var (
-	upgrader    = websocket.Upgrader{CheckOrigin: func(r *http.Request) bool { return true }}
-	waitingRoom = make(map[*websocket.Conn]string)
-	broadcast   = make(chan Message)
+	upgrader      = websocket.Upgrader{CheckOrigin: func(r *http.Request) bool { return true }}
+	rooms         = make(map[string]*Room)
+	broadcast     = make(chan Message)
+	maxWaitTime   = 20 * time.Second
+	countdownTime = 10 * time.Second
 )
 
-func HandleConnection(w http.ResponseWriter, r *http.Request) {
-	conn, err := upgrader.Upgrade(w, r, nil)
-	if err != nil {
-		fmt.Println("Error upgrading connection:", err)
-		return
-	}
-	defer conn.Close()
+type Message struct {
+	Type        string   `json:"type"`
+	Name        string   `json:"name"`
+	Content     string   `json:"content"`
+	Action      string   `json:"action"`
+	Seconds     int      `json:"seconds,omitempty"`
+	PlayerCount int      `json:"playerCount,omitempty"`
+	PlayerOrder []string `json:"playerOrder,omitempty"`
+	Lives       int      `json:"lives,omitempty"`
+}
 
-	fmt.Println("Client connected")
-	fmt.Println("playerCount", playerCount)
-
-	go SendPingMessages(conn)
-
-	for {
-		var msg Message
-		err := conn.ReadJSON(&msg)
-		if err != nil {
-			fmt.Println("Error reading message:", err)
-			HandleDisconnection(conn)
-			break
-		}
-		
-		fmt.Println("playerCount", playerCount)
-		if msg.Type == "" {
-			fmt.Println("Received message with empty type:", msg)
-			conn.WriteJSON(Message{Type: "error", Content: "Invalid message format"})
-			continue
-		}
-
-		fmt.Println("Message received:", msg)
-
-		switch msg.Type {
-		case "join":
-			if contains(playerOrder,msg.Name){
-				conn.WriteJSON(Message{Type: "pseudoUsed"})
-				break
-			}
-
-			HandleJoin(conn, msg.Name)
-		case "logout":
-			HandleLogout(conn)
-		default:
-			broadcast <- msg
+func HandleMessages() {
+	for msg := range broadcast {
+		if room, exists := rooms[msg.Action]; exists {
+			SendMessageToClients(msg, room)
+		} else {
+			fmt.Println("Room does not exist for message:", msg)
 		}
 	}
 }
 
-func SendPingMessages(conn *websocket.Conn) {
-	for {
-		time.Sleep(10 * time.Second)
-		if err := conn.WriteMessage(websocket.PingMessage, nil); err != nil {
-			fmt.Println("Error sending ping message1:", err)
-			ResetGame()
-			fmt.Println("Error sending ping message2:", err)
-			HandleDisconnection(conn)
-			return
-		}
-	}
-}
+func SendMessageToClients(msg Message, room *Room) {
+    room.mu.Lock()
+    defer room.mu.Unlock()
 
-func HandleJoin(conn *websocket.Conn, name string) {
-	mu.Lock()
-	defer mu.Unlock()
-
-	if gameStarted {
-		conn.WriteJSON(Message{Type: "gameStarted", Content: "Game has already started. You cannot join now."})
-		CloseConn(conn)
-		return
-	}
-
-	if _, exists := waitingRoom[conn]; !exists {
-		fmt.Printf("%s connected\n", name)
-		waitingRoom[conn] = name
-		playerOrder = append(playerOrder, name)
-		playerCount++
-		BroadcastPlayerJoined(name)
-
-		fmt.Println("playerCount", playerCount)
-		if playerCount == 2 && !countdownStarted {
-			go StartCountdown()
-		}
-	}
-}
-
-func HandleLogout(conn *websocket.Conn) {
-	mu.Lock()
-	defer mu.Unlock()
-
-	RemovePlayer(conn)
-}
-
-func HandleDisconnection(conn *websocket.Conn) {
-	mu.Lock()
-	defer mu.Unlock()
-
-	RemovePlayer(conn)
-	ResetGame()
-
-	if playerCount < 2 && gameStarted {
-		EndGame()
-	}
-}
-
-func RemovePlayer(conn *websocket.Conn) {
-	name, exists := waitingRoom[conn]
-	if !exists {
-		name = "Unknown Player"
-	}
-
-	fmt.Printf("Player %s disconnected\n", name)
-	delete(waitingRoom, conn)
-	RemovePlayerFromOrder(name)
-	if playerCount > 0 {
-		playerCount--
-	}
-
-	fmt.Println("playerCount1", playerCount)
-	if playerCount == 1 {
-		for remainingPlayer := range waitingRoom {
-			err := remainingPlayer.WriteJSON(Message{
-				Type:    "gameEnded",
-				Content: "You are the last player remaining. You win!",
-			})
-			if err != nil {
-				fmt.Println("Error sending win message:", err)
-			}
-		}
-		ResetGame()
-	fmt.Println("playerCountaFTER RESET", playerCount)
-
-	} else if playerCount < 2 {
-		countdownStarted = false
-	}
-
-	broadcast <- Message{
-		Type:        "playerDisconnected",
-		Name:        name,
-		PlayerOrder: playerOrder,
-		PlayerCount: playerCount,
-	}
-}
-
-func BroadcastPlayerJoined(name string) {
-	broadcast <- Message{
-		Type:        "playerJoined",
-		Name:        name,
-		Seconds:     maxWaitTime,
-		PlayerCount: playerCount,
-		PlayerOrder: playerOrder,
-	}
-}
-
-func CloseConn(conn *websocket.Conn) {
-	conn.Close()
-}
-
-func ResetGame() {
-    fmt.Println("Attempting to reset game...") 
-
-    waitingRoom = make(map[*websocket.Conn]string)
-    playerOrder = []string{}
-    playerCount = 0
-    countdownStarted = false
-    gameStarted = false
-
-    fmt.Println("Game has been reset and is ready for new players.") 
-}
-
-func contains(arr []string, target string) bool {
-    for _, element := range arr {
-        if element == target {
-            return true // Si l'élément est trouvé, on retourne true
+    for _, player := range room.Players {
+        if err := player.Connection.WriteJSON(msg); err != nil {
+            fmt.Println("Error sending message to client:", err)
+            HandleDisconnection(player.Connection)
+        } else {
+            fmt.Println("Message sent to client:", msg)
         }
     }
-    return false // Si l'élément n'est pas trouvé, on retourne false
+}
+
+func EndGame(room *Room) {
+	room.GameOver = true
+	for _, player := range room.Players {
+		player.Connection.WriteJSON(Message{
+			Type:    "gameEnded",
+			Content: "Game Over!",
+		})
+	}
+	ResetGame(room)
 }

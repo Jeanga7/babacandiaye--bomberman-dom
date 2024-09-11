@@ -1,0 +1,23 @@
+# TODO List
+
+- [ ] Lorsque y'a plusieurs players à partir de 3 et l'un meurt gameover pour tout le monde
+✔ [ ] Deux utilisateur peuvent avoir le même nom   @OusmaneSene @done(24-09-11 05:44)
+✔ [ ] Lorsque y'a trops de message (chat) les écritures débordent de la partie réservée  @ElieMalo @done(24-09-11 10:19)
+- [ ] Logic du jeux
+- [ ] Placement des players @MbayeDiao
+- [ ] Apparence des players
+- [ ] On est obligé de couper le websocket pour recommencer à utiliser le jeux  @OusmaneSene
+- [ ] Le map qui déborde dans certaines écrans   @BabacarNdiaye
+✔ [ ] Lorsqu'on spam les touche directionnel il y'a de temps en temps la possibilité que le serveur crash @EmmmanuelDieng @done(24-09-11 05:46)
+- [ ] Integration du power up speed
+- [ ] Remove les vies dans le front @OusmaneSene
+- [ ] Indication au niveau des power up qu'il sont activés
+✔ [ ] Si des users on même nom il crée un seul player qu’il bouge dans les deux écran @OusmaneSene @done(24-09-11 05:44)
+
+
+
+//legende
+☐ ctrl + Enter (initiliser une tâche)
+☐ @started(24-05-25 13:45) ctrl + Enter / alt + s (pour demarrer une tâche)
+✔ @done(24-05-25 13:46) alt + D (pour terminer une tâche)
+✘ @cancelled(24-05-25 13:47) (pour annuler une tâche)

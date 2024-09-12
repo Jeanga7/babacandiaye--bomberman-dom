@@ -17,7 +17,7 @@ export function changeScreen() {
 }
 
 export const keydownHandler = (event) => {
-    if (event.key == "Enter") {
+    if (event.key === "Enter") {
         playerName = document.getElementById('inputfield').value.trim();
         
         if (playerName) {
@@ -28,38 +28,44 @@ export const keydownHandler = (event) => {
             }
             
             if (playerName.length > 6) {
-                let errorName = VDOM.createElement("div", { id: "errorName", style: "color:red;margin-top:10px;font-size:x-large;" }, "Please use less than 7 characters");
-
-                if (!document.getElementById("errorName")) {
-                    VDOM.appendChildToElementById("app", errorName);
-                    setTimeout(() => (
-                        document.getElementById("errorName").remove()
-                    ), 2000);
-                }
+                showError("Please use less than 7 characters");
                 return;
             }
             
-            function sendJoinMessage(playerName) {
-                const message = {
-                    type: 'join',
-                    name: playerName
-                };
-                ws.send(JSON.stringify(message));
-            }
-            
-            // console.log("playerName", playerName);
             sendJoinMessage(playerName);
 
             document.removeEventListener("keydown", keydownHandler);
         } else {
-            let errorName = VDOM.createElement("div", { id: "errorName", style: "color:red;margin-top:10px;font-size:x-large;" }, "Please use a valid pseudo");
-
-            if (!document.getElementById("errorName")) {
-                VDOM.appendChildToElementById("app", errorName);
-                setTimeout(() => (
-                    document.getElementById("errorName").remove()
-                ), 2000);
-            }
+            showError("Please use a valid pseudo");
         }
     }
 };
+
+function showError(message) {
+    let errorName = VDOM.createElement("div", { id: "errorName", style: "color:red;margin-top:10px;font-size:x-large;" }, message);
+
+    const appElement = document.getElementById("app");
+    if (appElement) {
+        if (!document.getElementById("errorName")) {
+            VDOM.appendChildToElementById("app", errorName);
+            setTimeout(() => {
+                const errorElement = document.getElementById("errorName");
+                if (errorElement) {
+                    errorElement.remove();
+                }
+            }, 2000);
+        }
+    }
+}
+
+function sendJoinMessage(playerName) {
+    if (ws.readyState === WebSocket.OPEN) {
+        const message = {
+            type: 'join',
+            name: playerName
+        };
+        ws.send(JSON.stringify(message));
+    } else {
+        console.error("WebSocket is not open. Cannot send message.");
+    }
+}

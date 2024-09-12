@@ -8,19 +8,6 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-func init() {
-	rooms["defaultRoom"] = &Room{
-		ID:               "defaultRoom",
-		Players:          make(map[string]*Player),
-		MaxPlayers:       4,
-		WaitingTime:      maxWaitTime,
-		CountdownTime:    countdownTime,
-		CountdownStarted: false,
-		GameStarted:      false,
-		GameOver:         false,
-	}
-}
-
 func HandleConnection(w http.ResponseWriter, r *http.Request) {
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
@@ -30,57 +17,72 @@ func HandleConnection(w http.ResponseWriter, r *http.Request) {
 	defer conn.Close()
 
 	fmt.Println("Client connected")
+
 	go SendPingMessages(conn)
 
 	for {
 		var msg Message
 		err := conn.ReadJSON(&msg)
 		if err != nil {
+			if websocket.IsCloseError(err, websocket.CloseGoingAway) {
+				handleClientDisconnection(conn)
+				break
+			}
 			fmt.Println("Error reading message:", err)
-			HandleDisconnection(conn)
+			handleClientDisconnection(conn)
 			break
 		}
+
 		if msg.Type == "" {
 			conn.WriteJSON(Message{Type: "error", Content: "Invalid message format"})
 			continue
 		}
 
-		switch msg.Type {
-		case "join":
-			room, exists := rooms["defaultRoom"]
-			if !exists {
-				conn.WriteJSON(Message{Type: "error", Content: "Room does not exist"})
-				break
-			}
+		handleMessage(msg, conn)
+	}
+}
 
-			if contains(room.Players, msg.Name) {
-				conn.WriteJSON(Message{Type: "pseudoUsed"})
-				break
+func SendPingMessages(conn *websocket.Conn) {
+	ticker := time.NewTicker(10 * time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ticker.C:
+			if conn == nil {
+				return
 			}
-			HandleJoin(room, conn, msg.Name)
-		case "collision":
-			room, exists := rooms["defaultRoom"]
-			if exists {
-				HandleCollision(room, msg.Name)
-			} else {
-				conn.WriteJSON(Message{Type: "error", Content: "Room does not exist"})
-			}
-		default:
-			if room, exists := rooms[msg.Action]; exists {
-				SendMessageToClients(msg, room)
-			} else {
-				fmt.Println("Room does not exist for message:", msg)
+			if err := conn.WriteMessage(websocket.PingMessage, nil); err != nil {
+				fmt.Printf("Error sending ping message: %v\n", err)
+				handleClientDisconnection(conn)
+				return
 			}
 		}
 	}
 }
 
-func SendPingMessages(conn *websocket.Conn) {
-	for {
-		time.Sleep(10 * time.Second)
-		if err := conn.WriteMessage(websocket.PingMessage, nil); err != nil {
-			HandleDisconnection(conn)
-			return
+func handleMessage(msg Message, conn *websocket.Conn) {
+	switch msg.Type {
+	case "join":
+		room := GetRoom(msg.Action)
+		if room == nil {
+			room = NewRoom(msg.Action)
+			rooms[room.ID] = room
+		}
+		HandleJoin(room, conn, msg.Name)
+	case "collision":
+		room := GetRoom(msg.Action)
+		if room != nil {
+			HandleCollision(room, msg.Name)
+		} else {
+			fmt.Println("Room does not exist for message:", msg)
+		}
+	default:
+		room := GetRoom(msg.Action)
+		if room != nil {
+			SendMessageToClients(msg, room)
+		} else {
+			fmt.Println("Room does not exist for message:", msg)
 		}
 	}
 }
@@ -96,7 +98,6 @@ func HandleJoin(room *Room, conn *websocket.Conn, name string) {
 	}
 
 	if _, exists := room.Players[name]; !exists {
-
 		player := &Player{
 			ID:         name,
 			Name:       name,
@@ -136,11 +137,11 @@ func StartWaitingTimer(room *Room) {
 				if room.PlayerCount >= 2 {
 					StartCountdown(room)
 				} else {
-					ResetGame(room)
+					RemoveRoom(room.ID)
 				}
 			})
 		} else {
-			ResetGame(room)
+			RemoveRoom(room.ID)
 		}
 	})
 }
@@ -162,25 +163,24 @@ func StartCountdown(room *Room) {
 			room.GameStarted = true
 			broadcast <- Message{Type: "gameStarted", Content: "Game is starting!"}
 		} else {
-			ResetGame(room)
+			RemoveRoom(room.ID)
 		}
 	})
 }
 
-func HandleDisconnection(conn *websocket.Conn) {
-	var playerName string
+// handleClientDisconnection handles a player disconnecting
+func handleClientDisconnection(conn *websocket.Conn) {
 	for _, room := range rooms {
 		room.mu.Lock()
-		for _, player := range room.Players {
+		for name, player := range room.Players {
 			if player.Connection == conn {
-				playerName = player.Name
 				RemovePlayer(room, player)
-				room.mu.Unlock()
 				broadcast <- Message{
 					Type:        "playerDisconnected",
-					Name:        playerName,
+					Name:        name,
 					PlayerCount: room.PlayerCount,
 				}
+				room.mu.Unlock()
 				return
 			}
 		}
@@ -188,11 +188,12 @@ func HandleDisconnection(conn *websocket.Conn) {
 	}
 }
 
+// RemovePlayer removes a player from a room
 func RemovePlayer(room *Room, player *Player) {
+	fmt.Printf("Player %s disconnected\n", player.Name)
 	room.mu.Lock()
 	defer room.mu.Unlock()
 
-	fmt.Printf("Player %s disconnected\n", player.Name)
 	delete(room.Players, player.ID)
 	room.PlayerCount--
 
@@ -206,7 +207,7 @@ func RemovePlayer(room *Room, player *Player) {
 				fmt.Println("Error sending win message:", err)
 			}
 		}
-		ResetGame(room)
+		RemoveRoom(room.ID)
 	} else if room.PlayerCount < 2 {
 		room.CountdownStarted = false
 	}
@@ -218,21 +219,24 @@ func RemovePlayer(room *Room, player *Player) {
 	}
 }
 
+// BroadcastPlayerJoined broadcasts when a player joins a room
 func BroadcastPlayerJoined(room *Room, name string) {
-	// room.mu.Lock()
-	// defer room.mu.Unlock()
-	
-	fmt.Println("msg", name)
-	fmt.Println("room", room)
+	playerOrder := make([]string, 0, len(room.Players))
+	for playerName := range room.Players {
+		playerOrder = append(playerOrder, playerName)
+	}
 
 	broadcast <- Message{
 		Type:        "playerJoined",
 		Name:        name,
+		Action:      room.ID,
 		Seconds:     int(maxWaitTime.Seconds()),
 		PlayerCount: room.PlayerCount,
+		PlayerOrder: playerOrder,
 	}
 }
 
+// HandleCollision handles player collisions
 func HandleCollision(room *Room, name string) {
 	room.mu.Lock()
 	defer room.mu.Unlock()
@@ -263,22 +267,12 @@ func HandleCollision(room *Room, name string) {
 	}
 }
 
-func ResetGame(room *Room) {
-	room.mu.Lock()
-	defer room.mu.Unlock()
-
-	room.Players = make(map[string]*Player)
-	room.PlayerCount = 0
-	room.CountdownStarted = false
-	room.GameStarted = false
-
-	fmt.Println("Game has been reset and is ready for new players.")
-}
-
+// CloseConn closes a WebSocket connection
 func CloseConn(conn *websocket.Conn) {
 	conn.Close()
 }
 
+// contains checks if a player exists in the map
 func contains(players map[string]*Player, target string) bool {
 	for _, player := range players {
 		if player.Name == target {
@@ -286,4 +280,25 @@ func contains(players map[string]*Player, target string) bool {
 		}
 	}
 	return false
+}
+
+// GetRoom retrieves a room by its ID
+func GetRoom(roomID string) *Room {
+	return rooms[roomID]
+}
+
+// NewRoom creates a new room with the given ID
+func NewRoom(id string) *Room {
+	return &Room{
+		ID:            id,
+		Players:       make(map[string]*Player),
+		MaxPlayers:    4,
+		WaitingTime:   maxWaitTime,
+		CountdownTime: countdownTime,
+	}
+}
+
+// RemoveRoom removes a room from the map
+func RemoveRoom(id string) {
+	delete(rooms, id)
 }

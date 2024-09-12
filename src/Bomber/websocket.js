@@ -27,7 +27,7 @@ export function setupWebSocket() {
 }
 
 function handleWebSocketMessage(data) {
-  console.log("datatype", data.type);
+  console.log("datatype", data);
 
   switch (data.type) {
     case 'pseudoUsed':
@@ -73,6 +73,9 @@ function handleWebSocketMessage(data) {
       } else {
         updateOtherPlayerLives(data.name, data.lives);
       }
+      break;
+    case 'waitingForPlayers':
+      handleWaitingForPlayers(data);
       break;
     case 'playerEliminated':
       if (message.name === getPlayerName()) {

@@ -50,6 +50,7 @@ type Message struct {
 
 func HandleMessages() {
 	for msg := range broadcast {
+		fmt.Println("Received message:", msg)
 		if room, exists := rooms[msg.Action]; exists {
 			SendMessageToClients(msg, room)
 		} else {
@@ -65,7 +66,7 @@ func SendMessageToClients(msg Message, room *Room) {
     for _, player := range room.Players {
         if err := player.Connection.WriteJSON(msg); err != nil {
             fmt.Println("Error sending message to client:", err)
-            HandleDisconnection(player.Connection)
+            handleClientDisconnection(player.Connection)
         } else {
             fmt.Println("Message sent to client:", msg)
         }
@@ -73,12 +74,14 @@ func SendMessageToClients(msg Message, room *Room) {
 }
 
 func EndGame(room *Room) {
-	room.GameOver = true
-	for _, player := range room.Players {
-		player.Connection.WriteJSON(Message{
-			Type:    "gameEnded",
-			Content: "Game Over!",
-		})
+	room.mu.Lock()
+	defer room.mu.Unlock()
+
+	if !room.GameOver {
+		room.GameOver = true
+		broadcast <- Message{
+			Type:    "gameOver",
+			Content: "The game has ended!",
+		}
 	}
-	ResetGame(room)
 }

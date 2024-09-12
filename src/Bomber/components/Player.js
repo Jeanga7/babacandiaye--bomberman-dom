@@ -228,9 +228,8 @@ function placeBomb(row, col, playername) {
     },
   });
 
-  // Add the SVG image for the bomb
   const bombImageElement = VDOM.createElement("img", {
-    src: "../assets/bomb-assets.svg",  // Path to your bomb SVG
+    src: "../assets/bomb-assets.svg", 
     style: {
       width: "100%",
       height: "100%",
@@ -259,7 +258,6 @@ function placeBomb(row, col, playername) {
   }, 3000);
 }
 
-
 export function removePlayer(playerName) {
   const playerElement = document.getElementById(`player-${playerName}`);
   const map = document.getElementById("mapDiv");
@@ -286,7 +284,6 @@ export function removePlayer(playerName) {
     console.warn(`Player element with name ${playerName} not found.`);
   }
 }
-
 
 function destroyBrick(row, col, playername) {
   var directions = {};

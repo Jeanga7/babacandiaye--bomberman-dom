@@ -57,9 +57,6 @@ func HandleMessages() {
 }
 
 func SendMessageToClients(msg Message, room *Room) {
-	room.mu.Lock()
-	defer room.mu.Unlock()
-
 	for _, player := range room.Players {
 		if err := player.Connection.WriteJSON(msg); err != nil {
 			fmt.Println("Error sending message to client:", err)

@@ -101,9 +101,11 @@ function handlePlayerAction(data) {
 }
 
 function handlePlayerJoined(data) {
+  console.log("data.playerOrder", data.playerOrder);
+  
   seconds = data.seconds;
   playerCount = data.playerCount;
-  objetOfPlayer = data.playerOrder;
+  objetOfPlayer = data.playerOrder.map(player => player.Name);
 
   requestFullScreen();
   waitingRoom(playerCount);

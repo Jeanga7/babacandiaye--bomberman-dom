@@ -62,6 +62,7 @@ func SendPingMessages(conn *websocket.Conn) {
 }
 
 func handleMessage(msg Message, conn *websocket.Conn) {
+	fmt.Println("msg depuis front", msg)
 	switch msg.Type {
 	case "join":
 		HandleJoin(conn, msg.Name)
@@ -84,7 +85,6 @@ func HandleJoin(conn *websocket.Conn, name string) {
 
 	if _, exists := room.Players[name]; !exists {
 		player := &Player{
-			ID:         name,
 			Name:       name,
 			Connection: conn,
 			Lives:      3,
@@ -107,13 +107,23 @@ func StartWaitingTimer() {
 		room.mu.Lock()
 		defer room.mu.Unlock()
 
+		playerOrder := make([]Player, 0, len(room.Players))
+		for _, player := range room.Players {
+			playerOrder = append(playerOrder, Player{
+				Name:  player.Name,
+				Lives: player.Lives,
+			})
+		}
+
 		if room.PlayerCount >= 4 {
 			go StartCountdown()
 		} else if room.PlayerCount >= 2 && !room.CountdownStarted {
 			room.CountdownStarted = true
 			broadcast <- Message{
-				Type:    "startPreparation",
-				Content: "Starting countdown in 10 seconds.",
+				Type:        "startPreparation",
+				Content:     "Starting countdown in 10 seconds.",
+				PlayerCount: room.PlayerCount,
+				PlayerOrder: playerOrder,
 			}
 			time.AfterFunc(room.CountdownTime, func() {
 				room.mu.Lock()
@@ -130,7 +140,6 @@ func StartWaitingTimer() {
 		}
 	})
 }
-
 
 func StartCountdown() {
 	room.mu.Lock()
@@ -176,7 +185,7 @@ func RemovePlayer(player *Player) {
 	room.mu.Lock()
 	defer room.mu.Unlock()
 
-	delete(room.Players, player.ID)
+	delete(room.Players, player.Name)
 	room.PlayerCount--
 
 	if room.PlayerCount == 1 {
@@ -202,9 +211,12 @@ func RemovePlayer(player *Player) {
 }
 
 func BroadcastPlayerJoined(name string) {
-	playerOrder := make([]string, 0, len(room.Players))
-	for playerName := range room.Players {
-		playerOrder = append(playerOrder, playerName)
+	playerOrder := make([]Player, 0, len(room.Players))
+	for _, player := range room.Players {
+		playerOrder = append(playerOrder, Player{
+			Name:  player.Name,
+			Lives: player.Lives,
+		})
 	}
 
 	broadcast <- Message{
@@ -245,7 +257,6 @@ func HandleCollision(name string) {
 		}
 	}
 }
-
 
 func CloseConn(conn *websocket.Conn) {
 	conn.Close()

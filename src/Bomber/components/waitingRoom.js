@@ -3,6 +3,7 @@ import { tabImageOfPlayer } from '../app.js';
 import { objetOfPlayer } from '../websocket.js';
 
 export function waitingRoom(nbrOfPlayer) {
+    console.log("objetOfPlayer", objetOfPlayer);
     
     if (!document.getElementById("container") && nbrOfPlayer !== undefined) {
         console.log("nbrOfPlayer", nbrOfPlayer);

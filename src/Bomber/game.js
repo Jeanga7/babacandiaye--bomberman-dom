@@ -16,7 +16,7 @@ export function startGame(objetOfPlayer) {
 
 export function startPreparation() {
   const timer = document.getElementById("timer");
-  createCountdown(10, timer, " seconds left before start", () => {
+  createCountdown(10, timer, " seconds left before start", () => {    
     startGame(objetOfPlayer);
   });
 }

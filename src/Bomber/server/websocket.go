@@ -10,7 +10,6 @@ import (
 )
 
 type Player struct {
-	ID         string
 	Name       string
 	Connection *websocket.Conn
 	Lives      int
@@ -46,7 +45,7 @@ type Message struct {
 	Action      string   `json:"action"`
 	Seconds     int      `json:"seconds,omitempty"`
 	PlayerCount int      `json:"playerCount,omitempty"`
-	PlayerOrder []string `json:"playerOrder,omitempty"`
+	PlayerOrder []Player `json:"playerOrder,omitempty"`
 	Lives       int      `json:"lives,omitempty"`
 }
 

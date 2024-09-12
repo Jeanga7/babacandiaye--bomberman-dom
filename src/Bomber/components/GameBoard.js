@@ -20,7 +20,7 @@ export function createGame() {
 function handleKeyDown(event) {
     const action = getActionFromKey(event.key);
     if (action) {
-        ws.send(JSON.stringify({ type: 'action', name: playerName, action: action }));
+        ws.send(JSON.stringify({ type: 'action', name: playerName, action: action , roomID: currentRoomID}));
     }
 }
 

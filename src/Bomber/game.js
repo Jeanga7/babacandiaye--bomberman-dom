@@ -3,9 +3,11 @@ import { createGame } from "./components/GameBoard.js";
 import { insertMap } from "./components/maps.js";
 import { createLifeCounter, createPowerUpContainer } from "./UI.js";
 import { createCountdown, MountComponent } from "./utils.js";
+import { objetOfPlayer } from "./websocket.js";
 
 
 export function startGame(objetOfPlayer) {
+  console.log("Starting game with players:", objetOfPlayer);
   MountComponent('#app', createGame);
   VDOM.appendChildToElementById('part2', createPowerUpContainer());
   VDOM.appendChildToElementById('part1', createLifeCounter());
@@ -14,5 +16,7 @@ export function startGame(objetOfPlayer) {
 
 export function startPreparation() {
   const timer = document.getElementById("timer");
-  createCountdown (10, timer, " seconds left before start");
+  createCountdown(10, timer, " seconds left before start", () => {
+    startGame(objetOfPlayer);
+  });
 }

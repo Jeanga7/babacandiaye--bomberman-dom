@@ -17,7 +17,6 @@ type Player struct {
 }
 
 type Room struct {
-	ID               string
 	Players          map[string]*Player
 	PlayerCount      int
 	MaxPlayers       int
@@ -31,10 +30,13 @@ type Room struct {
 
 var (
 	upgrader      = websocket.Upgrader{CheckOrigin: func(r *http.Request) bool { return true }}
-	rooms         = make(map[string]*Room)
+	room          = &Room{
+		Players:       make(map[string]*Player),
+		MaxPlayers:    4,
+		WaitingTime:   20 * time.Second,
+		CountdownTime: 10 * time.Second,
+	}
 	broadcast     = make(chan Message)
-	maxWaitTime   = 20 * time.Second
-	countdownTime = 10 * time.Second
 )
 
 type Message struct {
@@ -51,26 +53,22 @@ type Message struct {
 func HandleMessages() {
 	for msg := range broadcast {
 		fmt.Println("Received message:", msg)
-		if room, exists := rooms[msg.Action]; exists {
-			SendMessageToClients(msg, room)
-		} else {
-			fmt.Println("Room does not exist for message:", msg)
-		}
+		SendMessageToClients(msg, room)
 	}
 }
 
 func SendMessageToClients(msg Message, room *Room) {
-    room.mu.Lock()
-    defer room.mu.Unlock()
+	room.mu.Lock()
+	defer room.mu.Unlock()
 
-    for _, player := range room.Players {
-        if err := player.Connection.WriteJSON(msg); err != nil {
-            fmt.Println("Error sending message to client:", err)
-            handleClientDisconnection(player.Connection)
-        } else {
-            fmt.Println("Message sent to client:", msg)
-        }
-    }
+	for _, player := range room.Players {
+		if err := player.Connection.WriteJSON(msg); err != nil {
+			fmt.Println("Error sending message to client:", err)
+			handleClientDisconnection(player.Connection)
+		} else {
+			fmt.Println("Message sent to client:", msg)
+		}
+	}
 }
 
 func EndGame(room *Room) {

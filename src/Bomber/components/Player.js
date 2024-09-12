@@ -29,9 +29,7 @@ function canPerformAction(playerName) {
 
 export function updatePlayerAction(playerName, action, ix, iy) {
   console.log(`${playerName} action: ${action} ix ${ix} yi ${iy}`);
-  // let playerElement = playerElements[playerName];
 
-  // Initialize player states if not already set
   if (!boxplaced.hasOwnProperty(playerName)) boxplaced[playerName] = 1;
   if (!powerUp.hasOwnProperty(playerName)) powerUp[playerName] = false;
   if (!playerLives.hasOwnProperty(playerName)) playerLives[playerName] = 3;

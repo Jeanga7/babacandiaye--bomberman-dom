@@ -2,7 +2,7 @@ export function createCountdown(seconds, displayElement, message, onComplete) {
   let remainingSeconds = seconds;
 
   const updateDisplay = () => {
-    displayElement.textContent = `00:${remainingSeconds} ${message}`;
+    displayElement.textContent = `00:${remainingSeconds < 10 ? '0' : ''}${remainingSeconds} ${message}`;
   };
 
   const countdown = setInterval(() => {
@@ -11,7 +11,8 @@ export function createCountdown(seconds, displayElement, message, onComplete) {
       updateDisplay();
     } else {
       clearInterval(countdown);
-      if (onComplete) onComplete();
+      updateDisplay(); 
+      if (onComplete) onComplete(); 
     }
   }, 1000);
 

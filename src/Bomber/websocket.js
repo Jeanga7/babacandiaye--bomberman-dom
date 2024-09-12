@@ -48,12 +48,6 @@ function handleWebSocketMessage(data) {
     case 'startPreparation':
       startPreparation();
       break;
-    case 'startGame':
-      startGame(objetOfPlayer);
-      break;
-    case 'notEnoughPlayers':
-      displayMessage('Not enough players to start the game.', false);
-      break;
     case 'gameStarted':
       alert(data.content);
       ws.close();
@@ -73,9 +67,6 @@ function handleWebSocketMessage(data) {
       } else {
         updateOtherPlayerLives(data.name, data.lives);
       }
-      break;
-    case 'waitingForPlayers':
-      handleWaitingForPlayers(data);
       break;
     case 'playerEliminated':
       if (message.name === getPlayerName()) {
@@ -104,6 +95,7 @@ function HandlePseudo() {
 }
 
 function handlePlayerAction(data) {
+  console.log("Received player action:", data);
   const playerPosition = allpos[data.name];
   updatePlayerAction(data.name, data.action, playerPosition.x, playerPosition.y);
 }

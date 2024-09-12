@@ -64,30 +64,15 @@ func SendPingMessages(conn *websocket.Conn) {
 func handleMessage(msg Message, conn *websocket.Conn) {
 	switch msg.Type {
 	case "join":
-		room := GetRoom(msg.Action)
-		if room == nil {
-			room = NewRoom(msg.Action)
-			rooms[room.ID] = room
-		}
-		HandleJoin(room, conn, msg.Name)
+		HandleJoin(conn, msg.Name)
 	case "collision":
-		room := GetRoom(msg.Action)
-		if room != nil {
-			HandleCollision(room, msg.Name)
-		} else {
-			fmt.Println("Room does not exist for message:", msg)
-		}
+		HandleCollision(msg.Name)
 	default:
-		room := GetRoom(msg.Action)
-		if room != nil {
-			SendMessageToClients(msg, room)
-		} else {
-			fmt.Println("Room does not exist for message:", msg)
-		}
+		SendMessageToClients(msg, room)
 	}
 }
 
-func HandleJoin(room *Room, conn *websocket.Conn, name string) {
+func HandleJoin(conn *websocket.Conn, name string) {
 	room.mu.Lock()
 	defer room.mu.Unlock()
 
@@ -107,46 +92,47 @@ func HandleJoin(room *Room, conn *websocket.Conn, name string) {
 		room.Players[name] = player
 		room.PlayerCount++
 
-		BroadcastPlayerJoined(room, name)
+		BroadcastPlayerJoined(name)
 
 		if room.PlayerCount >= 4 && !room.CountdownStarted {
-			go StartCountdown(room)
+			go StartCountdown()
 		} else if room.PlayerCount >= 2 && !room.CountdownStarted {
-			go StartWaitingTimer(room)
+			go StartWaitingTimer()
 		}
 	}
 }
 
-func StartWaitingTimer(room *Room) {
-	time.AfterFunc(maxWaitTime, func() {
+func StartWaitingTimer() {
+	time.AfterFunc(room.WaitingTime, func() {
 		room.mu.Lock()
 		defer room.mu.Unlock()
 
 		if room.PlayerCount >= 4 {
-			go StartCountdown(room)
+			go StartCountdown()
 		} else if room.PlayerCount >= 2 && !room.CountdownStarted {
 			room.CountdownStarted = true
 			broadcast <- Message{
-				Type:    "waitingForPlayers",
+				Type:    "startPreparation",
 				Content: "Starting countdown in 10 seconds.",
 			}
-			time.AfterFunc(countdownTime, func() {
+			time.AfterFunc(room.CountdownTime, func() {
 				room.mu.Lock()
 				defer room.mu.Unlock()
 
 				if room.PlayerCount >= 2 {
-					StartCountdown(room)
+					StartCountdown()
 				} else {
-					RemoveRoom(room.ID)
+					RemoveRoom()
 				}
 			})
 		} else {
-			RemoveRoom(room.ID)
+			RemoveRoom()
 		}
 	})
 }
 
-func StartCountdown(room *Room) {
+
+func StartCountdown() {
 	room.mu.Lock()
 	defer room.mu.Unlock()
 
@@ -155,7 +141,7 @@ func StartCountdown(room *Room) {
 		Type:    "gameStarting",
 		Content: "Game is starting in 10 seconds!",
 	}
-	time.AfterFunc(countdownTime, func() {
+	time.AfterFunc(room.CountdownTime, func() {
 		room.mu.Lock()
 		defer room.mu.Unlock()
 
@@ -163,33 +149,29 @@ func StartCountdown(room *Room) {
 			room.GameStarted = true
 			broadcast <- Message{Type: "gameStarted", Content: "Game is starting!"}
 		} else {
-			RemoveRoom(room.ID)
+			RemoveRoom()
 		}
 	})
 }
 
-// handleClientDisconnection handles a player disconnecting
 func handleClientDisconnection(conn *websocket.Conn) {
-	for _, room := range rooms {
-		room.mu.Lock()
-		for name, player := range room.Players {
-			if player.Connection == conn {
-				RemovePlayer(room, player)
-				broadcast <- Message{
-					Type:        "playerDisconnected",
-					Name:        name,
-					PlayerCount: room.PlayerCount,
-				}
-				room.mu.Unlock()
-				return
+	room.mu.Lock()
+	defer room.mu.Unlock()
+
+	for name, player := range room.Players {
+		if player.Connection == conn {
+			RemovePlayer(player)
+			broadcast <- Message{
+				Type:        "playerDisconnected",
+				Name:        name,
+				PlayerCount: room.PlayerCount,
 			}
+			return
 		}
-		room.mu.Unlock()
 	}
 }
 
-// RemovePlayer removes a player from a room
-func RemovePlayer(room *Room, player *Player) {
+func RemovePlayer(player *Player) {
 	fmt.Printf("Player %s disconnected\n", player.Name)
 	room.mu.Lock()
 	defer room.mu.Unlock()
@@ -207,7 +189,7 @@ func RemovePlayer(room *Room, player *Player) {
 				fmt.Println("Error sending win message:", err)
 			}
 		}
-		RemoveRoom(room.ID)
+		RemoveRoom()
 	} else if room.PlayerCount < 2 {
 		room.CountdownStarted = false
 	}
@@ -219,8 +201,7 @@ func RemovePlayer(room *Room, player *Player) {
 	}
 }
 
-// BroadcastPlayerJoined broadcasts when a player joins a room
-func BroadcastPlayerJoined(room *Room, name string) {
+func BroadcastPlayerJoined(name string) {
 	playerOrder := make([]string, 0, len(room.Players))
 	for playerName := range room.Players {
 		playerOrder = append(playerOrder, playerName)
@@ -229,15 +210,13 @@ func BroadcastPlayerJoined(room *Room, name string) {
 	broadcast <- Message{
 		Type:        "playerJoined",
 		Name:        name,
-		Action:      room.ID,
-		Seconds:     int(maxWaitTime.Seconds()),
+		Seconds:     int(room.WaitingTime.Seconds()),
 		PlayerCount: room.PlayerCount,
 		PlayerOrder: playerOrder,
 	}
 }
 
-// HandleCollision handles player collisions
-func HandleCollision(room *Room, name string) {
+func HandleCollision(name string) {
 	room.mu.Lock()
 	defer room.mu.Unlock()
 
@@ -248,7 +227,7 @@ func HandleCollision(room *Room, name string) {
 
 	player.Lives--
 	if player.Lives <= 0 {
-		RemovePlayer(room, player)
+		RemovePlayer(player)
 		broadcast <- Message{
 			Type:    "playerEliminated",
 			Name:    name,
@@ -267,38 +246,16 @@ func HandleCollision(room *Room, name string) {
 	}
 }
 
-// CloseConn closes a WebSocket connection
+
 func CloseConn(conn *websocket.Conn) {
 	conn.Close()
 }
 
-// contains checks if a player exists in the map
-func contains(players map[string]*Player, target string) bool {
-	for _, player := range players {
-		if player.Name == target {
-			return true
-		}
-	}
-	return false
-}
-
-// GetRoom retrieves a room by its ID
-func GetRoom(roomID string) *Room {
-	return rooms[roomID]
-}
-
-// NewRoom creates a new room with the given ID
-func NewRoom(id string) *Room {
-	return &Room{
-		ID:            id,
+func RemoveRoom() {
+	room = &Room{
 		Players:       make(map[string]*Player),
 		MaxPlayers:    4,
-		WaitingTime:   maxWaitTime,
-		CountdownTime: countdownTime,
+		WaitingTime:   20 * time.Second,
+		CountdownTime: 10 * time.Second,
 	}
-}
-
-// RemoveRoom removes a room from the map
-func RemoveRoom(id string) {
-	delete(rooms, id)
 }
